@@ -10,6 +10,10 @@ namespace vocaltri::ui {
 class SessionViewModel;
 }
 
+namespace vocaltri {
+struct AppSettings;
+}
+
 namespace vocaltri::input {
 class TextInjector;
 }
@@ -28,7 +32,7 @@ public:
                               input::TextInjector &textInjector,
                               QObject *parent = nullptr);
 
-    bool start(const QString &apiKey);
+    bool start(const AppSettings &settings);
     void stop(bool cancel);
 
 signals:

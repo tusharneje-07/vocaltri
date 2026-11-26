@@ -2,3 +2,4 @@
 2026-11-26T00:00:00Z - Milestone A validated and pushed; Milestone B overlay implementation completed and smoke-tested offscreen.
 2026-11-26T00:00:00Z - Milestone C streaming/audio integration added behind optional Qt Multimedia and WebSockets detection; fallback build validated.
 2026-11-26T00:00:00Z - Milestone D runtime text insertion backends added; build, test, and diff checks passed.
+2026-11-26T00:00:00Z - Milestone E settings, example configuration, and installable systemd assets added; build, tests, install, and diff checks passed.

@@ -1,5 +1,6 @@
 #include "transcription/deepgram_client.hpp"
 
+#include "common/app_settings.hpp"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -53,25 +54,30 @@ DeepgramClient::DeepgramClient(QObject *parent)
     });
 }
 
-bool DeepgramClient::start(const QString &apiKey) {
-    if (apiKey.isEmpty()) {
+bool DeepgramClient::start(const AppSettings &settings) {
+    if (settings.apiKey.isEmpty()) {
         return false;
     }
-    m_apiKey = apiKey;
+    m_apiKey = settings.apiKey;
     m_closing = false;
     m_reconnectAttempts = 0;
 
     QUrl url(QStringLiteral("wss://api.deepgram.com/v1/listen"));
     QUrlQuery query;
-    query.addQueryItem(QStringLiteral("model"), QStringLiteral("nova-3"));
+    query.addQueryItem(QStringLiteral("model"), settings.model);
     query.addQueryItem(QStringLiteral("encoding"), QStringLiteral("linear16"));
     query.addQueryItem(QStringLiteral("sample_rate"), QStringLiteral("16000"));
     query.addQueryItem(QStringLiteral("channels"), QStringLiteral("1"));
     query.addQueryItem(QStringLiteral("interim_results"), QStringLiteral("true"));
-    query.addQueryItem(QStringLiteral("smart_format"), QStringLiteral("true"));
-    query.addQueryItem(QStringLiteral("punctuate"), QStringLiteral("true"));
-    query.addQueryItem(QStringLiteral("endpointing"), QStringLiteral("300"));
-    query.addQueryItem(QStringLiteral("utterance_end_ms"), QStringLiteral("1000"));
+    query.addQueryItem(QStringLiteral("smart_format"), settings.smartFormat ? QStringLiteral("true")
+                                                                            : QStringLiteral("false"));
+    query.addQueryItem(QStringLiteral("punctuate"), settings.punctuate ? QStringLiteral("true")
+                                                                        : QStringLiteral("false"));
+    query.addQueryItem(QStringLiteral("endpointing"), QString::number(settings.endpointingMs));
+    query.addQueryItem(QStringLiteral("utterance_end_ms"), QString::number(settings.utteranceEndMs));
+    if (!settings.language.isEmpty()) {
+        query.addQueryItem(QStringLiteral("language"), settings.language);
+    }
     query.addQueryItem(QStringLiteral("vad_events"), QStringLiteral("true"));
     url.setQuery(query);
     m_url = url;

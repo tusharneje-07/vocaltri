@@ -72,14 +72,14 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
     });
 }
 
-bool StreamingSession::start(const QString &apiKey) {
+bool StreamingSession::start(const AppSettings &settings) {
     m_finalText.clear();
     m_speechStarted = false;
     m_lastSpeechMs = 0;
     m_viewModel.setElapsedMs(0);
     m_viewModel.setTranscript({}, {});
     m_viewModel.setState(ipc::SessionState::Connecting);
-    if (!m_client->start(apiKey)) {
+    if (!m_client->start(settings)) {
         return false;
     }
     m_elapsedTimer->start();

@@ -3,6 +3,10 @@
 #include <QObject>
 #include <QUrl>
 
+namespace vocaltri {
+struct AppSettings;
+}
+
 class QTimer;
 class QWebSocket;
 
@@ -14,7 +18,7 @@ class DeepgramClient final : public QObject {
 public:
     explicit DeepgramClient(QObject *parent = nullptr);
 
-    bool start(const QString &apiKey);
+    bool start(const AppSettings &settings);
     void sendAudio(const QByteArray &chunk);
     void closeStream();
     bool isOpen() const;

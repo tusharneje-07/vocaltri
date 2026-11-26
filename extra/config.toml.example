@@ -1,0 +1,10 @@
+# Copy to ~/.config/vocaltri/config.toml and chmod 600.
+# DEEPGRAM_API_KEY in the environment takes precedence over this value.
+deepgram_api_key = "replace-me"
+
+model = "nova-3"
+# language = "en-US"
+smart_format = true
+punctuate = true
+endpointing_ms = 300
+utterance_end_ms = 1000

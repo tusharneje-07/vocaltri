@@ -35,6 +35,18 @@ the RemoteDesktop/libei capability boundary. If no injector is available,
 the transcript is copied to the clipboard and a desktop notification is
 requested.
 
+## Configuration
+
+Copy `extra/config.toml.example` to `~/.config/vocaltri/config.toml`, replace
+the API key, and set owner-only permissions:
+
+```sh
+install -Dm600 extra/config.toml.example ~/.config/vocaltri/config.toml
+```
+
+`DEEPGRAM_API_KEY` overrides the file value. Model, language, formatting, and
+endpointing settings are read from the file.
+
 ## Run
 
 Start the daemon in one terminal:

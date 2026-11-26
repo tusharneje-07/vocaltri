@@ -5,7 +5,7 @@
 #include "ui/session_view_model.hpp"
 #include "input/text_injector.hpp"
 #if VOCALTRI_HAS_STREAMING
-#include "common/deepgram_key.hpp"
+#include "common/app_settings.hpp"
 #include "transcription/streaming_session.hpp"
 #endif
 
@@ -118,8 +118,8 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
     const auto command = request.command;
 #if VOCALTRI_HAS_STREAMING
     const auto startStreaming = [this]() -> bool {
-        const auto key = deepgramApiKey();
-        if (key.isEmpty()) {
+        const auto settings = loadAppSettings();
+        if (settings.apiKey.isEmpty()) {
             return false;
         }
             m_streamingSession = std::make_unique<transcription::StreamingSession>(
@@ -131,7 +131,7 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
             }
             m_streamingSession.reset();
         });
-        if (!m_streamingSession->start(key)) {
+        if (!m_streamingSession->start(settings)) {
             m_streamingSession.reset();
             return false;
         }

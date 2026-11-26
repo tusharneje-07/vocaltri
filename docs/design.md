@@ -62,3 +62,11 @@ clipboard MIME payload. The portal/libei backend is kept as the first
 capability slot but is not falsely reported as available: a real
 RemoteDesktop session needs a user permission flow and will be added without
 changing the session or injector interface.
+
+## Settings and packaging
+
+`AppSettings` reads the API key from `DEEPGRAM_API_KEY` first and otherwise
+accepts an owner-only `~/.config/vocaltri/config.toml`. It also covers the
+Deepgram model, language, formatting, endpointing, and utterance-end values.
+The example file is installed with the binary, and the systemd user unit is
+installed under `lib/systemd/user`.

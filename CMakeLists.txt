@@ -15,6 +15,8 @@ find_package(Qt6 6.5 QUIET COMPONENTS Multimedia WebSockets)
 include(CTest)
 
 add_library(vocaltri-common STATIC
+    src/common/app_settings.cpp
+    src/common/app_settings.hpp
     src/common/deepgram_key.cpp
     src/common/deepgram_key.hpp
     src/common/ipc_protocol.cpp
@@ -68,3 +70,4 @@ endif()
 
 install(TARGETS vocaltri RUNTIME DESTINATION bin)
 install(FILES extra/vocaltri.service DESTINATION lib/systemd/user)
+install(FILES extra/config.toml.example DESTINATION share/vocaltri)
