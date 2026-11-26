@@ -4,6 +4,7 @@ After=graphical-session.target
 
 [Service]
 ExecStart=%h/.local/bin/vocaltri server
+UnsetEnvironment=QT_QPA_PLATFORM
 Restart=on-failure
 RestartSec=2
 
