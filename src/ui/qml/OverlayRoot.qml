@@ -92,7 +92,7 @@ Item {
                 id: transcript
                 width: Math.max(1, parent.width - 170)
                 spacing: 4
-                implicitHeight: Math.min(120, finalLine.implicitHeight + interimLine.implicitHeight + 4)
+                height: Math.min(120, childrenRect.height)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Text {

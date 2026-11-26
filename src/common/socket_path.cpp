@@ -8,6 +8,11 @@
 namespace vocaltri {
 
 QString socketPath() {
+    const auto overridePath = qEnvironmentVariable("VOCALTRI_SOCKET").trimmed();
+    if (!overridePath.isEmpty()) {
+        return overridePath;
+    }
+
     const auto runtimeDirectory = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
     if (!runtimeDirectory.isEmpty()) {
         return QDir(runtimeDirectory).filePath(QStringLiteral("vocaltri.sock"));
