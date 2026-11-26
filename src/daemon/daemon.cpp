@@ -2,6 +2,11 @@
 
 #include "common/socket_path.hpp"
 #include "ui/overlay_window.hpp"
+#include "ui/session_view_model.hpp"
+#if VOCALTRI_HAS_STREAMING
+#include "common/deepgram_key.hpp"
+#include "transcription/streaming_session.hpp"
+#endif
 
 #include <QDir>
 #include <QLocalServer>
@@ -25,6 +30,8 @@ Daemon::~Daemon() {
 
 bool Daemon::start() {
     m_overlay = std::make_unique<ui::OverlayWindow>();
+    m_sessionModel = std::make_unique<ui::SessionViewModel>();
+    m_overlay->setModel(m_sessionModel.get());
     connect(m_overlay.get(), &ui::OverlayWindow::cancelRequested, this, [this] {
         if (m_state != ipc::SessionState::Idle) {
             m_state = ipc::SessionState::Idle;
@@ -107,9 +114,36 @@ ipc::Response Daemon::errorResponse(const ipc::Command command, const QString &m
 
 ipc::Response Daemon::handle(const ipc::Request &request) {
     const auto command = request.command;
+#if VOCALTRI_HAS_STREAMING
+    const auto startStreaming = [this]() -> bool {
+        const auto key = deepgramApiKey();
+        if (key.isEmpty()) {
+            return false;
+        }
+        m_streamingSession = std::make_unique<transcription::StreamingSession>(*m_sessionModel);
+        connect(m_streamingSession.get(), &transcription::StreamingSession::finished, this, [this] {
+            if (m_state == ipc::SessionState::Finalizing) {
+                m_state = ipc::SessionState::Idle;
+                m_overlay->setState(m_state);
+            }
+            m_streamingSession.reset();
+        });
+        if (!m_streamingSession->start(key)) {
+            m_streamingSession.reset();
+            return false;
+        }
+        return true;
+    };
+#endif
     switch (command) {
     case ipc::Command::Toggle:
         if (m_state == ipc::SessionState::Idle) {
+#if VOCALTRI_HAS_STREAMING
+            if (!startStreaming()) {
+                return errorResponse(command, QStringLiteral(
+                    "could not start streaming; check DEEPGRAM_API_KEY and audio input"));
+            }
+#endif
             m_state = ipc::SessionState::Connecting;
             m_overlay->setState(m_state);
             m_state = ipc::SessionState::Listening;
@@ -118,6 +152,12 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
         }
         m_state = ipc::SessionState::Finalizing;
         m_overlay->setState(m_state);
+#if VOCALTRI_HAS_STREAMING
+        if (m_streamingSession) {
+            m_streamingSession->stop(false);
+            return {true, command, m_state, QStringLiteral("dictation finalizing")};
+        }
+#endif
         m_state = ipc::SessionState::Idle;
         m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation stopped")};
@@ -125,6 +165,12 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
         if (m_state != ipc::SessionState::Idle) {
             return errorResponse(command, QStringLiteral("dictation is already active"));
         }
+#if VOCALTRI_HAS_STREAMING
+        if (!startStreaming()) {
+            return errorResponse(command, QStringLiteral(
+                "could not start streaming; check DEEPGRAM_API_KEY and audio input"));
+        }
+#endif
         m_state = ipc::SessionState::Connecting;
         m_overlay->setState(m_state);
         m_state = ipc::SessionState::Listening;
@@ -136,13 +182,30 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
         }
         m_state = ipc::SessionState::Finalizing;
         m_overlay->setState(m_state);
+#if VOCALTRI_HAS_STREAMING
+        if (m_streamingSession) {
+            m_streamingSession->stop(false);
+            return {true, command, m_state, QStringLiteral("dictation finalizing")};
+        }
+#endif
         m_state = ipc::SessionState::Idle;
+#if VOCALTRI_HAS_STREAMING
+        if (m_streamingSession) {
+            m_streamingSession->stop(true);
+            m_streamingSession.reset();
+        }
+#endif
         m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation stopped")};
     case ipc::Command::Cancel:
         if (m_state == ipc::SessionState::Idle) {
             return errorResponse(command, QStringLiteral("dictation is not active"));
         }
+#if VOCALTRI_HAS_STREAMING
+        if (m_streamingSession) {
+            m_streamingSession->stop(true);
+        }
+#endif
         m_state = ipc::SessionState::Idle;
         m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation cancelled")};

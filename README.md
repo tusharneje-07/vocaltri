@@ -5,9 +5,11 @@ wlroots compositors, and X11.
 
 ## Status
 
-Milestone A is complete: a user daemon and thin CLI communicate through a
-per-user local socket. Audio capture, streaming transcription, the overlay,
-and text insertion are being added in subsequent milestones.
+Milestones A and B are complete: a user daemon and thin CLI communicate
+through a per-user local socket, and a non-focusing Qt Quick overlay renders
+the session state. Milestone C adds optional 16 kHz PCM capture and Deepgram
+streaming when the Qt Multimedia and Qt WebSockets development modules are
+installed.
 
 ## Build
 
@@ -23,6 +25,11 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+For live transcription, also install the Qt Multimedia and Qt WebSockets
+development packages supplied by your distribution. Without them, the IPC
+and overlay milestones still build and run; CMake prints a warning and
+disables streaming.
 
 ## Run
 

@@ -35,3 +35,19 @@ installed. Those modules are part of the requested stack and will be detected
 explicitly in the audio/transcription milestone; this project will not add an
 unlisted dependency without approval. Wayland layer-shell support is also
 isolated so GNOME/X11 fallback behavior remains possible.
+
+## Streaming milestone
+
+When both optional Qt modules are present, `AudioRecorder` requests 16 kHz,
+mono, signed 16-bit PCM from the default input and reports a normalized RMS
+level. `DeepgramClient` uses the documented `/v1/listen` WebSocket parameters
+(`nova-3`, `linear16`, `interim_results`, endpointing, utterance end, smart
+formatting, and punctuation), sends binary audio chunks, sends periodic
+`KeepAlive` messages, and closes with `CloseStream`.
+
+`StreamingSession` keeps interim text separate from final segments, appends
+only `is_final` transcripts to the committed overlay text, and keeps the
+overlay in `finalizing` until the WebSocket has flushed its final response.
+It retries transient socket failures with bounded backoff and treats
+authentication and rate-limit failures as non-retryable. The API key is read
+from `DEEPGRAM_API_KEY` or an owner-only `config.toml`; it is never logged.

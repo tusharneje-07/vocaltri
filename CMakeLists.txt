@@ -11,9 +11,12 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Network Qml Quick)
+find_package(Qt6 6.5 QUIET COMPONENTS Multimedia WebSockets)
 include(CTest)
 
 add_library(vocaltri-common STATIC
+    src/common/deepgram_key.cpp
+    src/common/deepgram_key.hpp
     src/common/ipc_protocol.cpp
     src/common/ipc_protocol.hpp
     src/common/socket_path.cpp
@@ -38,6 +41,22 @@ add_executable(vocaltri
 target_link_libraries(vocaltri PRIVATE vocaltri-common Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick)
 target_compile_features(vocaltri PRIVATE cxx_std_23)
 target_compile_definitions(vocaltri PRIVATE VOCALTRI_VERSION="${PROJECT_VERSION}")
+
+if(TARGET Qt6::Multimedia AND TARGET Qt6::WebSockets)
+    target_sources(vocaltri PRIVATE
+        src/audio/audio_recorder.cpp
+        src/audio/audio_recorder.hpp
+        src/transcription/deepgram_client.cpp
+        src/transcription/deepgram_client.hpp
+        src/transcription/streaming_session.cpp
+        src/transcription/streaming_session.hpp
+    )
+    target_link_libraries(vocaltri PRIVATE Qt6::Multimedia Qt6::WebSockets)
+    target_compile_definitions(vocaltri PRIVATE VOCALTRI_HAS_STREAMING=1)
+else()
+    message(WARNING "Qt Multimedia and/or WebSockets not found; streaming capture is disabled")
+    target_compile_definitions(vocaltri PRIVATE VOCALTRI_HAS_STREAMING=0)
+endif()
 
 if(BUILD_TESTING)
     add_executable(vocaltri-protocol-test tests/protocol_test.cpp)

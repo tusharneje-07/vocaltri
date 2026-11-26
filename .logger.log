@@ -1,2 +1,3 @@
 2026-11-26T00:00:00Z - Project inspection and Milestone A implementation started.
 2026-11-26T00:00:00Z - Milestone A validated and pushed; Milestone B overlay implementation completed and smoke-tested offscreen.
+2026-11-26T00:00:00Z - Milestone C streaming/audio integration added behind optional Qt Multimedia and WebSockets detection; fallback build validated.

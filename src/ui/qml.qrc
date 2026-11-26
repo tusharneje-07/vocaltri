@@ -1,6 +1,7 @@
 <RCC>
-    <qresource prefix="/vocaltri">
-        <file>qml/DesignTokens.qml</file>
-        <file>qml/OverlayRoot.qml</file>
+    <qresource prefix="/qt/qml/Vocaltri">
+        <file alias="qmldir">qml/qmldir</file>
+        <file alias="DesignTokens.qml">qml/DesignTokens.qml</file>
+        <file alias="OverlayRoot.qml">qml/OverlayRoot.qml</file>
     </qresource>
 </RCC>

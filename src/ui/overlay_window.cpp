@@ -19,12 +19,21 @@ OverlayWindow::~OverlayWindow() {
     delete m_window;
 }
 
+void OverlayWindow::setModel(SessionViewModel *model) {
+    if (m_model == model) {
+        return;
+    }
+    m_model = model;
+}
+
 void OverlayWindow::ensureWindow() {
     if (m_window) {
         return;
     }
 
-    m_model = new SessionViewModel(this);
+    if (!m_model) {
+        m_model = new SessionViewModel(this);
+    }
     m_window = new QQuickView;
     m_window->setResizeMode(QQuickView::SizeRootObjectToView);
     m_window->setColor(Qt::transparent);
@@ -32,7 +41,7 @@ void OverlayWindow::ensureWindow() {
                        | Qt::WindowDoesNotAcceptFocus);
     m_window->setTitle(QStringLiteral("vocaltri"));
     m_window->rootContext()->setContextProperty(QStringLiteral("session"), m_model);
-    m_window->setSource(QUrl(QStringLiteral("qrc:/vocaltri/OverlayRoot.qml")));
+    m_window->setSource(QUrl(QStringLiteral("qrc:/qt/qml/Vocaltri/OverlayRoot.qml")));
 
     if (auto *root = qobject_cast<QQuickItem *>(m_window->rootObject())) {
         connect(root, &QQuickItem::heightChanged, this, &OverlayWindow::updateGeometry);

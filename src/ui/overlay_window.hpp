@@ -19,6 +19,7 @@ public:
     ~OverlayWindow() override;
 
     void setState(ipc::SessionState state);
+    void setModel(SessionViewModel *model);
 
 signals:
     void cancelRequested();

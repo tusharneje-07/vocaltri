@@ -11,6 +11,11 @@ class QLocalSocket;
 
 namespace vocaltri::ui {
 class OverlayWindow;
+class SessionViewModel;
+}
+
+namespace vocaltri::transcription {
+class StreamingSession;
 }
 
 namespace vocaltri::daemon {
@@ -35,6 +40,10 @@ private:
     QHash<QLocalSocket *, QByteArray> m_buffers;
     ipc::SessionState m_state = ipc::SessionState::Idle;
     std::unique_ptr<ui::OverlayWindow> m_overlay;
+    std::unique_ptr<ui::SessionViewModel> m_sessionModel;
+#if VOCALTRI_HAS_STREAMING
+    std::unique_ptr<transcription::StreamingSession> m_streamingSession;
+#endif
 };
 
 } // namespace vocaltri::daemon
