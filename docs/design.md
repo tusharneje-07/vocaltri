@@ -51,3 +51,14 @@ overlay in `finalizing` until the WebSocket has flushed its final response.
 It retries transient socket failures with bounded backoff and treats
 authentication and rate-limit failures as non-retryable. The API key is read
 from `DEEPGRAM_API_KEY` or an owner-only `config.toml`; it is never logged.
+
+## Text insertion milestone
+
+Final segments are passed to a small `TextInjector` interface. The runtime
+probe prefers clipboard plus `ydotool` (which handles non-ASCII text without
+putting text into synthetic key events), then `wtype`, then `xdotool`, and
+finally clipboard-only notification. Clipboard paste saves and restores the
+clipboard MIME payload. The portal/libei backend is kept as the first
+capability slot but is not falsely reported as available: a real
+RemoteDesktop session needs a user permission flow and will be added without
+changing the session or injector interface.

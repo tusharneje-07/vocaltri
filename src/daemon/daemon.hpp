@@ -18,6 +18,10 @@ namespace vocaltri::transcription {
 class StreamingSession;
 }
 
+namespace vocaltri::input {
+class TextInjector;
+}
+
 namespace vocaltri::daemon {
 
 class Daemon final : public QObject {
@@ -41,6 +45,7 @@ private:
     ipc::SessionState m_state = ipc::SessionState::Idle;
     std::unique_ptr<ui::OverlayWindow> m_overlay;
     std::unique_ptr<ui::SessionViewModel> m_sessionModel;
+    std::unique_ptr<input::TextInjector> m_textInjector;
 #if VOCALTRI_HAS_STREAMING
     std::unique_ptr<transcription::StreamingSession> m_streamingSession;
 #endif

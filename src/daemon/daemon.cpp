@@ -3,6 +3,7 @@
 #include "common/socket_path.hpp"
 #include "ui/overlay_window.hpp"
 #include "ui/session_view_model.hpp"
+#include "input/text_injector.hpp"
 #if VOCALTRI_HAS_STREAMING
 #include "common/deepgram_key.hpp"
 #include "transcription/streaming_session.hpp"
@@ -31,6 +32,7 @@ Daemon::~Daemon() {
 bool Daemon::start() {
     m_overlay = std::make_unique<ui::OverlayWindow>();
     m_sessionModel = std::make_unique<ui::SessionViewModel>();
+    m_textInjector = std::make_unique<input::TextInjector>();
     m_overlay->setModel(m_sessionModel.get());
     connect(m_overlay.get(), &ui::OverlayWindow::cancelRequested, this, [this] {
         if (m_state != ipc::SessionState::Idle) {
@@ -120,7 +122,8 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
         if (key.isEmpty()) {
             return false;
         }
-        m_streamingSession = std::make_unique<transcription::StreamingSession>(*m_sessionModel);
+            m_streamingSession = std::make_unique<transcription::StreamingSession>(
+                *m_sessionModel, *m_textInjector);
         connect(m_streamingSession.get(), &transcription::StreamingSession::finished, this, [this] {
             if (m_state == ipc::SessionState::Finalizing) {
                 m_state = ipc::SessionState::Idle;

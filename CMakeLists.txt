@@ -36,6 +36,8 @@ add_executable(vocaltri
     src/ui/overlay_window.hpp
     src/ui/session_view_model.cpp
     src/ui/session_view_model.hpp
+    src/input/text_injector.cpp
+    src/input/text_injector.hpp
     src/ui/qml.qrc
 )
 target_link_libraries(vocaltri PRIVATE vocaltri-common Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick)

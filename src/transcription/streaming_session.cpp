@@ -2,6 +2,7 @@
 
 #include "audio/audio_recorder.hpp"
 #include "transcription/deepgram_client.hpp"
+#include "input/text_injector.hpp"
 #include "ui/session_view_model.hpp"
 
 #include <QElapsedTimer>
@@ -9,9 +10,12 @@
 
 namespace vocaltri::transcription {
 
-StreamingSession::StreamingSession(ui::SessionViewModel &viewModel, QObject *parent)
+StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
+                                   input::TextInjector &textInjector,
+                                   QObject *parent)
     : QObject(parent)
     , m_viewModel(viewModel)
+    , m_textInjector(textInjector)
     , m_recorder(new audio::AudioRecorder(this))
     , m_client(new DeepgramClient(this))
     , m_elapsedTimer(new QTimer(this))
@@ -112,6 +116,7 @@ void StreamingSession::appendFinal(QString text) {
     if (!m_finalText.isEmpty()) {
         m_finalText += QLatin1Char(' ');
     }
+    m_textInjector.insert(text);
     m_finalText += std::move(text);
 }
 

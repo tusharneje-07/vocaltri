@@ -5,11 +5,10 @@ wlroots compositors, and X11.
 
 ## Status
 
-Milestones A and B are complete: a user daemon and thin CLI communicate
-through a per-user local socket, and a non-focusing Qt Quick overlay renders
-the session state. Milestone C adds optional 16 kHz PCM capture and Deepgram
-streaming when the Qt Multimedia and Qt WebSockets development modules are
-installed.
+Milestones A through D are complete: a user daemon and thin CLI communicate
+through a per-user local socket, a non-focusing Qt Quick overlay renders the
+session state, optional Qt audio/Deepgram streaming is available, and final
+transcripts use a runtime-selected text insertion backend.
 
 ## Build
 
@@ -30,6 +29,11 @@ For live transcription, also install the Qt Multimedia and Qt WebSockets
 development packages supplied by your distribution. Without them, the IPC
 and overlay milestones still build and run; CMake prints a warning and
 disables streaming.
+
+Text insertion probes `ydotool`, `wtype`, and `xdotool` in that order after
+the RemoteDesktop/libei capability boundary. If no injector is available,
+the transcript is copied to the clipboard and a desktop notification is
+requested.
 
 ## Run
 
