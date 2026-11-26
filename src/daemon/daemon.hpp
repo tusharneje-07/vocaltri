@@ -4,9 +4,14 @@
 
 #include <QObject>
 #include <QHash>
+#include <memory>
 
 class QLocalServer;
 class QLocalSocket;
+
+namespace vocaltri::ui {
+class OverlayWindow;
+}
 
 namespace vocaltri::daemon {
 
@@ -29,6 +34,7 @@ private:
     QLocalServer *m_server = nullptr;
     QHash<QLocalSocket *, QByteArray> m_buffers;
     ipc::SessionState m_state = ipc::SessionState::Idle;
+    std::unique_ptr<ui::OverlayWindow> m_overlay;
 };
 
 } // namespace vocaltri::daemon

@@ -10,7 +10,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Network)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Network Qml Quick)
 include(CTest)
 
 add_library(vocaltri-common STATIC
@@ -29,8 +29,13 @@ add_executable(vocaltri
     src/daemon/daemon.hpp
     src/cli/cli_client.cpp
     src/cli/cli_client.hpp
+    src/ui/overlay_window.cpp
+    src/ui/overlay_window.hpp
+    src/ui/session_view_model.cpp
+    src/ui/session_view_model.hpp
+    src/ui/qml.qrc
 )
-target_link_libraries(vocaltri PRIVATE vocaltri-common Qt6::Core Qt6::Network)
+target_link_libraries(vocaltri PRIVATE vocaltri-common Qt6::Core Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick)
 target_compile_features(vocaltri PRIVATE cxx_std_23)
 target_compile_definitions(vocaltri PRIVATE VOCALTRI_VERSION="${PROJECT_VERSION}")
 

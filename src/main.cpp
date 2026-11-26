@@ -3,10 +3,15 @@
 
 #include <QCoreApplication>
 #include <QCommandLineParser>
+#include <QGuiApplication>
 #include <QTextStream>
+#include <memory>
 
 int main(int argc, char **argv) {
-    QCoreApplication app(argc, argv);
+    const bool isServer = argc > 1 && QString::fromLocal8Bit(argv[1]) == QStringLiteral("server");
+    std::unique_ptr<QCoreApplication> app = isServer
+        ? std::unique_ptr<QCoreApplication>(new QGuiApplication(argc, argv))
+        : std::unique_ptr<QCoreApplication>(new QCoreApplication(argc, argv));
     QCoreApplication::setApplicationName(QStringLiteral("vocaltri"));
     QCoreApplication::setApplicationVersion(QStringLiteral(VOCALTRI_VERSION));
 
@@ -18,7 +23,7 @@ int main(int argc, char **argv) {
         QStringLiteral("command"),
         QStringLiteral("server, toggle, start, stop, or cancel"),
         QStringLiteral("[command]"));
-    parser.process(app);
+    parser.process(*app);
 
     const auto positional = parser.positionalArguments();
     if (positional.isEmpty()) {
@@ -35,7 +40,7 @@ int main(int argc, char **argv) {
         if (!daemon.start()) {
             return 1;
         }
-        return app.exec();
+        return app->exec();
     }
 
     vocaltri::ipc::Command command{};

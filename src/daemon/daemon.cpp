@@ -1,6 +1,7 @@
 #include "daemon/daemon.hpp"
 
 #include "common/socket_path.hpp"
+#include "ui/overlay_window.hpp"
 
 #include <QDir>
 #include <QLocalServer>
@@ -23,6 +24,13 @@ Daemon::~Daemon() {
 }
 
 bool Daemon::start() {
+    m_overlay = std::make_unique<ui::OverlayWindow>();
+    connect(m_overlay.get(), &ui::OverlayWindow::cancelRequested, this, [this] {
+        if (m_state != ipc::SessionState::Idle) {
+            m_state = ipc::SessionState::Idle;
+            m_overlay->setState(m_state);
+        }
+    });
     const auto path = socketPath();
     if (m_server->listen(path)) {
         return true;
@@ -103,32 +111,40 @@ ipc::Response Daemon::handle(const ipc::Request &request) {
     case ipc::Command::Toggle:
         if (m_state == ipc::SessionState::Idle) {
             m_state = ipc::SessionState::Connecting;
-            // The streaming session will replace this transition in milestone C.
+            m_overlay->setState(m_state);
             m_state = ipc::SessionState::Listening;
+            m_overlay->setState(m_state);
             return {true, command, m_state, QStringLiteral("dictation started")};
         }
         m_state = ipc::SessionState::Finalizing;
+        m_overlay->setState(m_state);
         m_state = ipc::SessionState::Idle;
+        m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation stopped")};
     case ipc::Command::Start:
         if (m_state != ipc::SessionState::Idle) {
             return errorResponse(command, QStringLiteral("dictation is already active"));
         }
         m_state = ipc::SessionState::Connecting;
+        m_overlay->setState(m_state);
         m_state = ipc::SessionState::Listening;
+        m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation started")};
     case ipc::Command::Stop:
         if (m_state == ipc::SessionState::Idle) {
             return errorResponse(command, QStringLiteral("dictation is not active"));
         }
         m_state = ipc::SessionState::Finalizing;
+        m_overlay->setState(m_state);
         m_state = ipc::SessionState::Idle;
+        m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation stopped")};
     case ipc::Command::Cancel:
         if (m_state == ipc::SessionState::Idle) {
             return errorResponse(command, QStringLiteral("dictation is not active"));
         }
         m_state = ipc::SessionState::Idle;
+        m_overlay->setState(m_state);
         return {true, command, m_state, QStringLiteral("dictation cancelled")};
     }
     return errorResponse(command, QStringLiteral("unknown command"));
