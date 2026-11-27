@@ -51,6 +51,11 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
     });
     connect(m_client, &DeepgramClient::transcript, this,
             [this](const QString &text, const bool isFinal, const bool speechFinal) {
+                // A cancelled or failed session may still receive results that
+                // were in flight. Never insert them into the focused window.
+                if (m_finished) {
+                    return;
+                }
                 if (isFinal) {
                     appendFinal(text);
                     m_viewModel.setTranscript(m_finalText, {});

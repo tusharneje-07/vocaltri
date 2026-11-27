@@ -36,6 +36,7 @@ private:
     void openSocket();
     void handleText(QString message);
     void scheduleReconnect();
+    void emitFinished();
 
     QString m_apiKey;
     QUrl m_url;
@@ -44,9 +45,11 @@ private:
     QWebSocket *m_socket = nullptr;
     QTimer *m_keepAlive = nullptr;
     QTimer *m_reconnect = nullptr;
+    QTimer *m_closeTimeout = nullptr;
     int m_reconnectAttempts = 0;
     int m_authAttempts = 0;
     bool m_closing = false;
+    bool m_finishedEmitted = false;
 };
 
 } // namespace vocaltri::transcription

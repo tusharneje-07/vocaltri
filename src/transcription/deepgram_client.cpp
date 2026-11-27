@@ -18,7 +18,8 @@ DeepgramClient::DeepgramClient(QObject *parent)
     , m_network(new QNetworkAccessManager(this))
     , m_socket(new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this))
     , m_keepAlive(new QTimer(this))
-    , m_reconnect(new QTimer(this)) {
+    , m_reconnect(new QTimer(this))
+    , m_closeTimeout(new QTimer(this)) {
     m_keepAlive->setInterval(10000);
     connect(m_keepAlive, &QTimer::timeout, this, [this] {
         if (isOpen()) {
@@ -31,6 +32,18 @@ DeepgramClient::DeepgramClient(QObject *parent)
     // handler crashes on a 401 response carrying a WWW-Authenticate header,
     // so never let an invalid key reach QWebSocket.
     connect(m_reconnect, &QTimer::timeout, this, &DeepgramClient::beginAuthCheck);
+    m_closeTimeout->setSingleShot(true);
+    m_closeTimeout->setInterval(2500);
+    // CloseStream flushes buffered audio and Deepgram answers with the last
+    // final Results before it closes. Give that reply time to arrive instead
+    // of tearing the socket down immediately.
+    connect(m_closeTimeout, &QTimer::timeout, this, [this] {
+        if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+            m_socket->close(QWebSocketProtocol::CloseCodeNormal,
+                            QStringLiteral("dictation complete"));
+        }
+        emitFinished();
+    });
     connect(m_socket, &QWebSocket::connected, this, [this] {
         m_reconnectAttempts = 0;
         m_keepAlive->start();
@@ -40,7 +53,7 @@ DeepgramClient::DeepgramClient(QObject *parent)
     connect(m_socket, &QWebSocket::disconnected, this, [this] {
         m_keepAlive->stop();
         if (m_closing) {
-            emit finished();
+            emitFinished();
         } else {
             scheduleReconnect();
         }
@@ -67,8 +80,10 @@ bool DeepgramClient::start(const AppSettings &settings) {
     }
     m_apiKey = settings.apiKey;
     m_closing = false;
+    m_finishedEmitted = false;
     m_reconnectAttempts = 0;
     m_authAttempts = 0;
+    m_closeTimeout->stop();
     if (m_authReply) {
         auto *reply = m_authReply;
         m_authReply = nullptr;
@@ -180,12 +195,24 @@ void DeepgramClient::closeStream() {
         reply->abort();
         reply->deleteLater();
     }
-    if (isOpen()) {
-        m_socket->sendTextMessage(QStringLiteral(R"({"type":"CloseStream"})"));
-        m_socket->close(QWebSocketProtocol::CloseCodeNormal, QStringLiteral("dictation complete"));
-    } else {
-        emit finished();
+    if (!isOpen()) {
+        emitFinished();
+        return;
     }
+    // Ask Deepgram to flush what is left and wait for the final Results.
+    // The server closes the socket afterwards, which ends the session; the
+    // timeout is only a safety net for a server that never answers.
+    m_socket->sendTextMessage(QStringLiteral(R"({"type":"CloseStream"})"));
+    m_closeTimeout->start();
+}
+
+void DeepgramClient::emitFinished() {
+    if (m_finishedEmitted) {
+        return;
+    }
+    m_finishedEmitted = true;
+    m_closeTimeout->stop();
+    emit finished();
 }
 
 bool DeepgramClient::isOpen() const {
