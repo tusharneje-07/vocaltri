@@ -30,6 +30,7 @@ private:
 
     static Backend detectBackend();
     static QString backendLabel(Backend backend);
+    bool setClipboardText(const QString &text);
     bool insertClipboardPaste(const QString &text);
     bool insertDirect(const QString &program, const QStringList &arguments, const QString &text);
     void notifyClipboardOnly();
