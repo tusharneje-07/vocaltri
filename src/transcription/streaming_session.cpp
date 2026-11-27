@@ -5,7 +5,6 @@
 #include "input/text_injector.hpp"
 #include "ui/session_view_model.hpp"
 
-#include <QElapsedTimer>
 #include <QTimer>
 #include <QDebug>
 
@@ -19,17 +18,11 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
     , m_textInjector(textInjector)
     , m_recorder(new audio::AudioRecorder(this))
     , m_client(new DeepgramClient(this))
-    , m_elapsedTimer(new QTimer(this))
-    , m_silenceTimer(new QTimer(this)) {
+    , m_elapsedTimer(new QTimer(this)) {
     m_elapsedTimer->setInterval(100);
-    m_silenceTimer->setInterval(250);
     connect(m_recorder, &audio::AudioRecorder::audioChunk, m_client, &DeepgramClient::sendAudio);
     connect(m_recorder, &audio::AudioRecorder::levelChanged, this, [this](const qreal level) {
         m_viewModel.setLevel(level);
-        if (level > 0.05) {
-            m_speechStarted = true;
-            m_lastSpeechMs = m_viewModel.elapsedMs();
-        }
     });
     connect(m_recorder, &audio::AudioRecorder::errorOccurred, this, [this](const QString &message) {
         qWarning() << "vocaltri: audio capture failed:" << message;
@@ -50,7 +43,7 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
         m_viewModel.setState(ipc::SessionState::Listening);
     });
     connect(m_client, &DeepgramClient::transcript, this,
-            [this](const QString &text, const bool isFinal, const bool speechFinal) {
+            [this](const QString &text, const bool isFinal, const bool) {
                 // A cancelled or failed session may still receive results that
                 // were in flight. Never insert them into the focused window.
                 if (m_finished) {
@@ -61,9 +54,6 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
                     m_viewModel.setTranscript(m_finalText, {});
                 } else {
                     m_viewModel.setTranscript(m_finalText, text);
-                }
-                if (speechFinal && m_speechStarted) {
-                    m_lastSpeechMs = m_viewModel.elapsedMs();
                 }
             });
     connect(m_client, &DeepgramClient::finished, this, [this] { finish(true); });
@@ -81,20 +71,11 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
     connect(m_elapsedTimer, &QTimer::timeout, this, [this] {
         m_viewModel.setElapsedMs(m_viewModel.elapsedMs() + 100);
     });
-    connect(m_silenceTimer, &QTimer::timeout, this, [this] {
-        const auto elapsed = m_viewModel.elapsedMs();
-        const auto sinceSpeech = m_speechStarted ? elapsed - m_lastSpeechMs : elapsed;
-        if ((!m_speechStarted && elapsed >= 10000) || (m_speechStarted && sinceSpeech >= 3000)) {
-            stop(false);
-        }
-    });
 }
 
 bool StreamingSession::start(const AppSettings &settings) {
     m_finalText.clear();
-    m_speechStarted = false;
     m_finished = false;
-    m_lastSpeechMs = 0;
     m_viewModel.setElapsedMs(0);
     m_viewModel.setTranscript({}, {});
     m_viewModel.setState(ipc::SessionState::Connecting);
@@ -102,7 +83,6 @@ bool StreamingSession::start(const AppSettings &settings) {
         return false;
     }
     m_elapsedTimer->start();
-    m_silenceTimer->start();
     return true;
 }
 
@@ -111,7 +91,6 @@ void StreamingSession::stop(const bool cancel) {
         return;
     }
     m_elapsedTimer->stop();
-    m_silenceTimer->stop();
     m_recorder->stop();
     if (cancel) {
         m_client->closeStream();

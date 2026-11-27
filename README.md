@@ -6,9 +6,10 @@ wlroots compositors, and X11.
 ## Status
 
 Milestones A through E are complete: a user daemon and thin CLI communicate
-through a per-user local socket, a non-focusing Qt Quick overlay renders the
-session state, Qt audio/Deepgram streaming is available, final transcripts use
-a runtime-selected text insertion backend, and settings plus systemd packaging
+through a per-user local socket, a non-focusing Qt Quick status overlay shows
+listening state and elapsed time, Qt audio/Deepgram streaming is available,
+final transcripts are sent to the focused input using a runtime-selected
+backend, and settings plus systemd packaging
 are installed. The CLI waits for the asynchronous startup result, so a rejected
 API key or an unavailable microphone is reported instead of leaving the command
 silently in `connecting`.
@@ -77,6 +78,12 @@ In another terminal:
 ./build/vocaltri cancel
 ./build/vocaltri status
 ```
+
+The overlay remains visible during an active session and shows only its status
+and elapsed time (`MM:SS`); recognized words are not displayed there. Final
+transcripts are inserted into the focused input. Listening continues through
+silence until you call `stop` or `toggle` to finish, or `cancel` to discard the
+current session.
 
 `vocaltri mic-test` records three seconds from the default microphone and
 prints the captured byte count and peak level. It is useful for checking the

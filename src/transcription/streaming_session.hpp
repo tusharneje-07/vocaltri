@@ -48,9 +48,6 @@ private:
     audio::AudioRecorder *m_recorder = nullptr;
     DeepgramClient *m_client = nullptr;
     QTimer *m_elapsedTimer = nullptr;
-    QTimer *m_silenceTimer = nullptr;
-    qint64 m_lastSpeechMs = 0;
-    bool m_speechStarted = false;
     bool m_finished = false;
     QString m_finalText;
 };

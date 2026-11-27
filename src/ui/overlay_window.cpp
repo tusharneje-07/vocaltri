@@ -24,6 +24,9 @@ void OverlayWindow::setModel(SessionViewModel *model) {
         return;
     }
     m_model = model;
+    if (m_window) {
+        m_window->rootContext()->setContextProperty(QStringLiteral("session"), m_model);
+    }
 }
 
 void OverlayWindow::ensureWindow() {
@@ -37,8 +40,8 @@ void OverlayWindow::ensureWindow() {
     m_window = new QQuickView;
     m_window->setResizeMode(QQuickView::SizeRootObjectToView);
     m_window->setColor(Qt::transparent);
-    m_window->setFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint
-                       | Qt::WindowDoesNotAcceptFocus);
+    m_window->setFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint
+                       | Qt::WindowDoesNotAcceptFocus | Qt::WindowTransparentForInput);
     m_window->setTitle(QStringLiteral("vocaltri"));
     m_window->rootContext()->setContextProperty(QStringLiteral("session"), m_model);
     m_window->setSource(QUrl(QStringLiteral("qrc:/qt/qml/Vocaltri/OverlayRoot.qml")));
