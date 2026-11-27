@@ -6,3 +6,5 @@
 2026-11-26T00:00:00Z - Fixed QML overlay sizing error, verified on the active Wayland session with an isolated socket, and preserved unrelated local .gitignore work.
 2026-11-26T00:00:00Z - Installed and exercised the user service path; cleared an invalid inherited QT_QPA_PLATFORM value from the unit.
 2026-11-27T08:04:57Z - Committed and pushed the crash fix, IPC status polling, and input-backend probing; verified the real service reports a rejected Deepgram key with exit code 1 while staying active, and mic-test captured audio.
+2026-11-27T08:25:18Z - Builder implemented direct libei/liboeffis/libxkbcommon typing for Linux Wayland with Linux+Wayland runtime gating; implementation completed.
+2026-11-27T08:41:41Z - Builder completed the native Linux Wayland libei/liboeffis/xkbcommon backend with the portal permission boundary and a bounded transcript queue with combined clipboard fallback; a fresh configure/build/CTest passed, while the portal keystroke test remains user-driven for focus safety.

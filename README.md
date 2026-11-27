@@ -105,3 +105,53 @@ The IPC socket is created with user-only access where supported. API keys are
 not part of the CLI protocol and are never placed in process arguments or
 logs. The configuration file is ignored by the application unless its group
 and other permission bits are clear; install it with mode `600`.
+
+## Linux Wayland text insertion
+
+On Linux builds, CMake enables the native Wayland input backend only when
+`pkg-config` can find all three development modules: `libei-1.0`,
+`liboeffis-1.0`, and `xkbcommon`. Install the corresponding development packages
+for your distribution; package names vary. If `pkg-config` or any of these
+modules is unavailable, the application still builds, but this backend is
+compiled out. The installed application also needs the matching runtime shared
+libraries when they are not bundled with the executable.
+
+At runtime, the native backend is selected by default when vocaltri is running
+with Qt's Wayland platform and was built with those libraries. It needs an
+`xdg-desktop-portal` service and a compositor portal backend that supports the
+RemoteDesktop portal and EIS (the libei input channel). Vocaltri requests a
+keyboard-only portal session when it first has text to insert, not when the
+daemon starts. The portal/compositor controls whether to show a permission
+prompt and whether permission can be reused; vocaltri does not request a
+persistent session or restore token. The user can deny or close the session.
+
+If portal permission is denied/cancelled, the portal or EIS connection fails,
+or the native keyboard cannot represent the text, vocaltri joins queued
+transcripts with newlines and sends them to the clipboard as one payload. The
+queue is limited to 128 segments, 256K characters, or 1 MiB of UTF-8 data. If
+adding a transcript would exceed any limit, vocaltri uses clipboard fallback
+with the queued text joined to that incoming transcript, preserving both. It
+deliberately does not launch `ydotool`, `wtype`, or another injector after a
+native portal failure, so that a denied portal request is not bypassed. On
+Wayland, install `wl-clipboard` (`wl-copy`) for clipboard ownership from a
+background daemon; vocaltri otherwise tries Qt's clipboard interface. The
+clipboard-only path requests a desktop notification.
+
+When the native backend is not compiled in, or on other platforms, automatic
+selection falls back to `ydotool` when its executable and daemon socket are
+available; otherwise it selects `wtype` on Wayland, `xdotool` outside Wayland,
+or clipboard-only if no applicable injector is found. You can explicitly set
+`VOCALTRI_TEXT_BACKEND=clipboard|ydotool|wtype|xdotool` to choose one of those
+existing paths.
+
+The CMake probe enables libei's text-keysym API when that API is available. If
+the compositor's EIS keyboard does not offer text capability, vocaltri instead
+uses the keyboard's XKB keymap. That fallback searches only keymap group zero
+and supports the unmodified, Shift, and Mod5 (commonly AltGr) levels; it does
+not synthesize layout/group changes or compose sequences. Characters not
+represented by those mappings are not typed through EIS and are sent to the
+clipboard fallback instead.
+
+References: [XDG RemoteDesktop portal](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.RemoteDesktop.html),
+[liboeffis API](https://libinput.pages.freedesktop.org/libei/api/group__liboeffis.html),
+and [libei keyboard protocol](https://libinput.pages.freedesktop.org/libei/interfaces/ei_keyboard/index.html).
