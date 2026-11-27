@@ -19,6 +19,7 @@ public:
         : QObject(parent) {}
 
     QString state() const { return ipc::stateName(m_state); }
+    ipc::SessionState sessionState() const { return m_state; }
     QString finalText() const { return m_finalText; }
     QString interimText() const { return m_interimText; }
     qreal level() const { return m_level; }
@@ -32,6 +33,7 @@ public:
 
 signals:
     void stateChanged();
+    void sessionStateChanged(ipc::SessionState state);
     void transcriptChanged();
     void levelChanged();
     void elapsedChanged();

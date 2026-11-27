@@ -8,6 +8,7 @@ void SessionViewModel::setState(const ipc::SessionState state) {
     }
     m_state = state;
     emit stateChanged();
+    emit sessionStateChanged(state);
 }
 
 void SessionViewModel::setTranscript(QString finalText, QString interimText) {

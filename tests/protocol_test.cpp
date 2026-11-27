@@ -11,6 +11,8 @@ int main() {
     Command command{};
     assert(parseCommand(QStringLiteral("toggle"), command));
     assert(command == Command::Toggle);
+    assert(parseCommand(QStringLiteral("status"), command));
+    assert(command == Command::Status);
     assert(!parseCommand(QStringLiteral("launch"), command));
 
     Request request{};

@@ -10,6 +10,7 @@ enum class Command {
     Start,
     Stop,
     Cancel,
+    Status,
 };
 
 enum class SessionState {

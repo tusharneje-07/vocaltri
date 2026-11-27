@@ -38,11 +38,12 @@ private:
     void handleConnection();
     void handleData(QLocalSocket *socket);
     ipc::Response handle(const ipc::Request &request);
-    ipc::Response errorResponse(ipc::Command command, const QString &message) const;
+    ipc::Response errorResponse(ipc::Command command, const QString &message);
 
     QLocalServer *m_server = nullptr;
     QHash<QLocalSocket *, QByteArray> m_buffers;
     ipc::SessionState m_state = ipc::SessionState::Idle;
+    QString m_lastError;
     std::unique_ptr<ui::OverlayWindow> m_overlay;
     std::unique_ptr<ui::SessionViewModel> m_sessionModel;
     std::unique_ptr<input::TextInjector> m_textInjector;

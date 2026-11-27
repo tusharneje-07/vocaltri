@@ -15,6 +15,8 @@ QString commandName(const Command command) {
         return QStringLiteral("stop");
     case Command::Cancel:
         return QStringLiteral("cancel");
+    case Command::Status:
+        return QStringLiteral("status");
     }
     return QStringLiteral("unknown");
 }
@@ -46,6 +48,8 @@ bool parseCommand(const QString &value, Command &command) {
         command = Command::Stop;
     } else if (value == QStringLiteral("cancel")) {
         command = Command::Cancel;
+    } else if (value == QStringLiteral("status")) {
+        command = Command::Status;
     } else {
         return false;
     }
@@ -62,7 +66,7 @@ bool parseRequest(const QByteArray &line, Request &request, QString &error) {
 
     const auto commandValue = document.object().value(QStringLiteral("command"));
     if (!commandValue.isString() || !parseCommand(commandValue.toString(), request.command)) {
-        error = QStringLiteral("command must be one of: toggle, start, stop, cancel");
+        error = QStringLiteral("command must be one of: toggle, start, stop, cancel, status");
         return false;
     }
     return true;
