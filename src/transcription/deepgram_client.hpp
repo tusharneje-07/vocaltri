@@ -7,6 +7,8 @@ namespace vocaltri {
 struct AppSettings;
 }
 
+class QNetworkAccessManager;
+class QNetworkReply;
 class QTimer;
 class QWebSocket;
 
@@ -30,16 +32,20 @@ signals:
     void errorOccurred(QString message, bool retryable);
 
 private:
+    void beginAuthCheck();
     void openSocket();
     void handleText(QString message);
     void scheduleReconnect();
 
     QString m_apiKey;
     QUrl m_url;
+    QNetworkAccessManager *m_network = nullptr;
+    QNetworkReply *m_authReply = nullptr;
     QWebSocket *m_socket = nullptr;
     QTimer *m_keepAlive = nullptr;
     QTimer *m_reconnect = nullptr;
     int m_reconnectAttempts = 0;
+    int m_authAttempts = 0;
     bool m_closing = false;
 };
 

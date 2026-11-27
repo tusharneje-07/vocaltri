@@ -36,10 +36,11 @@ public:
     void stop(bool cancel);
 
 signals:
+    void failed(QString message);
     void finished();
 
 private:
-    void finish();
+    void finish(bool done = true);
     void appendFinal(QString text);
 
     ui::SessionViewModel &m_viewModel;
@@ -50,6 +51,7 @@ private:
     QTimer *m_silenceTimer = nullptr;
     qint64 m_lastSpeechMs = 0;
     bool m_speechStarted = false;
+    bool m_finished = false;
     QString m_finalText;
 };
 

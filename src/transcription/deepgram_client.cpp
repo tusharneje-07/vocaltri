@@ -4,6 +4,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QTimer>
 #include <QUrlQuery>
@@ -13,6 +15,7 @@ namespace vocaltri::transcription {
 
 DeepgramClient::DeepgramClient(QObject *parent)
     : QObject(parent)
+    , m_network(new QNetworkAccessManager(this))
     , m_socket(new QWebSocket(QString(), QWebSocketProtocol::VersionLatest, this))
     , m_keepAlive(new QTimer(this))
     , m_reconnect(new QTimer(this)) {
@@ -24,7 +27,10 @@ DeepgramClient::DeepgramClient(QObject *parent)
     });
 
     m_reconnect->setSingleShot(true);
-    connect(m_reconnect, &QTimer::timeout, this, &DeepgramClient::openSocket);
+    // Re-validate the key before reconnecting. Qt's WebSocket handshake
+    // handler crashes on a 401 response carrying a WWW-Authenticate header,
+    // so never let an invalid key reach QWebSocket.
+    connect(m_reconnect, &QTimer::timeout, this, &DeepgramClient::beginAuthCheck);
     connect(m_socket, &QWebSocket::connected, this, [this] {
         m_reconnectAttempts = 0;
         m_keepAlive->start();
@@ -42,11 +48,12 @@ DeepgramClient::DeepgramClient(QObject *parent)
     connect(m_socket, &QWebSocket::errorOccurred, this, [this](QAbstractSocket::SocketError) {
         const auto detail = m_socket->errorString();
         const auto authFailure = detail.contains(QStringLiteral("401"))
-            || detail.contains(QStringLiteral("Unauthorized"), Qt::CaseInsensitive);
+            || detail.contains(QStringLiteral("Unauthorized"), Qt::CaseInsensitive)
+            || detail.contains(QStringLiteral("WWW-Authenticate"), Qt::CaseInsensitive);
         const auto rateLimited = detail.contains(QStringLiteral("429"))
             || detail.contains(QStringLiteral("rate"), Qt::CaseInsensitive);
         emit errorOccurred(authFailure
-                               ? QStringLiteral("Deepgram rejected the API key")
+                               ? QStringLiteral("Deepgram rejected the API key (invalid or expired)")
                                : rateLimited
                                    ? QStringLiteral("Deepgram rate limit reached")
                                    : detail,
@@ -61,8 +68,18 @@ bool DeepgramClient::start(const AppSettings &settings) {
     m_apiKey = settings.apiKey;
     m_closing = false;
     m_reconnectAttempts = 0;
+    m_authAttempts = 0;
+    if (m_authReply) {
+        auto *reply = m_authReply;
+        m_authReply = nullptr;
+        reply->disconnect(this);
+        reply->abort();
+        reply->deleteLater();
+    }
 
-    QUrl url(QStringLiteral("wss://api.deepgram.com/v1/listen"));
+    const auto overrideUrl = qEnvironmentVariable("VOCALTRI_DEEPGRAM_WS_URL").trimmed();
+    QUrl url(overrideUrl.isEmpty() ? QStringLiteral("wss://api.deepgram.com/v1/listen")
+                                   : overrideUrl);
     QUrlQuery query;
     query.addQueryItem(QStringLiteral("model"), settings.model);
     query.addQueryItem(QStringLiteral("encoding"), QStringLiteral("linear16"));
@@ -81,8 +98,56 @@ bool DeepgramClient::start(const AppSettings &settings) {
     query.addQueryItem(QStringLiteral("vad_events"), QStringLiteral("true"));
     url.setQuery(query);
     m_url = url;
-    openSocket();
+    beginAuthCheck();
     return true;
+}
+
+void DeepgramClient::beginAuthCheck() {
+    if (m_closing || m_apiKey.isEmpty()) {
+        return;
+    }
+
+    const auto overrideAuthUrl = qEnvironmentVariable("VOCALTRI_DEEPGRAM_AUTH_URL").trimmed();
+    QNetworkRequest request(overrideAuthUrl.isEmpty()
+                                ? QUrl(QStringLiteral("https://api.deepgram.com/v1/auth/token"))
+                                : QUrl(overrideAuthUrl));
+    request.setRawHeader("Authorization", "Token " + m_apiKey.toUtf8());
+    request.setRawHeader("User-Agent", "vocaltri/0.1");
+    request.setTransferTimeout(5000);
+
+    m_authReply = m_network->get(request);
+    connect(m_authReply, &QNetworkReply::finished, this, [this, reply = m_authReply] {
+        if (m_authReply == reply) {
+            m_authReply = nullptr;
+        }
+        reply->deleteLater();
+        if (m_closing) {
+            return;
+        }
+
+        const auto status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (reply->error() == QNetworkReply::NoError && status >= 200 && status < 300) {
+            m_authAttempts = 0;
+            openSocket();
+            return;
+        }
+
+        const auto authFailure = status == 401 || status == 403;
+        if (authFailure) {
+            emit errorOccurred(
+                QStringLiteral("Deepgram rejected the API key (invalid or expired)"), false);
+            return;
+        }
+
+        // Retry transient validation failures a few times before giving up.
+        if (m_authAttempts < 2) {
+            const auto delay = 250 * (1 << m_authAttempts++);
+            QTimer::singleShot(delay, this, &DeepgramClient::beginAuthCheck);
+            return;
+        }
+        emit errorOccurred(QStringLiteral("could not reach Deepgram to validate the API key"),
+                           false);
+    });
 }
 
 void DeepgramClient::openSocket() {
@@ -108,6 +173,13 @@ void DeepgramClient::closeStream() {
     m_closing = true;
     m_reconnect->stop();
     m_keepAlive->stop();
+    if (m_authReply) {
+        auto *reply = m_authReply;
+        m_authReply = nullptr;
+        reply->disconnect(this);
+        reply->abort();
+        reply->deleteLater();
+    }
     if (isOpen()) {
         m_socket->sendTextMessage(QStringLiteral(R"({"type":"CloseStream"})"));
         m_socket->close(QWebSocketProtocol::CloseCodeNormal, QStringLiteral("dictation complete"));

@@ -7,6 +7,7 @@
 
 #include <QElapsedTimer>
 #include <QTimer>
+#include <QDebug>
 
 namespace vocaltri::transcription {
 
@@ -30,12 +31,20 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
             m_lastSpeechMs = m_viewModel.elapsedMs();
         }
     });
-    connect(m_recorder, &audio::AudioRecorder::errorOccurred, this, [this](const QString &) {
+    connect(m_recorder, &audio::AudioRecorder::errorOccurred, this, [this](const QString &message) {
+        qWarning() << "vocaltri: audio capture failed:" << message;
+        emit failed(message);
+        m_viewModel.setState(ipc::SessionState::Error);
         stop(true);
+        finish(false);
     });
     connect(m_client, &DeepgramClient::connected, this, [this] {
+        qInfo() << "vocaltri: Deepgram connected, starting microphone";
         if (!m_recorder->start()) {
+            emit failed(QStringLiteral("could not open the microphone"));
+            m_viewModel.setState(ipc::SessionState::Error);
             stop(true);
+            finish(false);
             return;
         }
         m_viewModel.setState(ipc::SessionState::Listening);
@@ -52,12 +61,16 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
                     m_lastSpeechMs = m_viewModel.elapsedMs();
                 }
             });
-    connect(m_client, &DeepgramClient::finished, this, &StreamingSession::finish);
+    connect(m_client, &DeepgramClient::finished, this, [this] { finish(true); });
     connect(m_client, &DeepgramClient::errorOccurred, this,
-            [this](const QString &, const bool retryable) {
+            [this](const QString &message, const bool retryable) {
+                qWarning() << "vocaltri: Deepgram error:" << message
+                           << "retryable:" << retryable;
                 if (!retryable) {
+                    emit failed(message);
                     m_viewModel.setState(ipc::SessionState::Error);
                     stop(true);
+                    finish(false);
                 }
             });
     connect(m_elapsedTimer, &QTimer::timeout, this, [this] {
@@ -75,6 +88,7 @@ StreamingSession::StreamingSession(ui::SessionViewModel &viewModel,
 bool StreamingSession::start(const AppSettings &settings) {
     m_finalText.clear();
     m_speechStarted = false;
+    m_finished = false;
     m_lastSpeechMs = 0;
     m_viewModel.setElapsedMs(0);
     m_viewModel.setTranscript({}, {});
@@ -88,7 +102,7 @@ bool StreamingSession::start(const AppSettings &settings) {
 }
 
 void StreamingSession::stop(const bool cancel) {
-    if (!m_elapsedTimer->isActive()) {
+    if (m_finished || !m_elapsedTimer->isActive()) {
         return;
     }
     m_elapsedTimer->stop();
@@ -98,14 +112,19 @@ void StreamingSession::stop(const bool cancel) {
         m_client->closeStream();
         m_viewModel.setTranscript({}, {});
         m_viewModel.setState(ipc::SessionState::Idle);
+        finish(false);
         return;
     }
     m_viewModel.setState(ipc::SessionState::Finalizing);
     m_client->closeStream();
 }
 
-void StreamingSession::finish() {
-    m_viewModel.setState(ipc::SessionState::Done);
+void StreamingSession::finish(const bool done) {
+    if (m_finished) {
+        return;
+    }
+    m_finished = true;
+    m_viewModel.setState(done ? ipc::SessionState::Done : ipc::SessionState::Idle);
     emit finished();
 }
 
@@ -116,6 +135,7 @@ void StreamingSession::appendFinal(QString text) {
     if (!m_finalText.isEmpty()) {
         m_finalText += QLatin1Char(' ');
     }
+    qInfo() << "vocaltri: final transcript received, characters:" << text.size();
     m_textInjector.insert(text);
     m_finalText += std::move(text);
 }
