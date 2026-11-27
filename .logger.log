@@ -5,3 +5,4 @@
 2026-11-26T00:00:00Z - Milestone E settings, example configuration, and installable systemd assets added; build, tests, install, and diff checks passed.
 2026-11-26T00:00:00Z - Fixed QML overlay sizing error, verified on the active Wayland session with an isolated socket, and preserved unrelated local .gitignore work.
 2026-11-26T00:00:00Z - Installed and exercised the user service path; cleared an invalid inherited QT_QPA_PLATFORM value from the unit.
+2026-11-27T08:04:57Z - Committed and pushed the crash fix, IPC status polling, and input-backend probing; verified the real service reports a rejected Deepgram key with exit code 1 while staying active, and mic-test captured audio.
